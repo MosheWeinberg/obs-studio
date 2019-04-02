@@ -3088,6 +3088,11 @@ void OBSBasic::VolControlContextMenu()
 	toggleControlLayoutAction.setChecked(config_get_bool(
 		GetGlobalConfig(), "BasicWindow", "VerticalVolControl"));
 
+	QAction ShowMonitoringButtonAction(QTStr("ShowMonitoringButton"), this);
+	ShowMonitoringButtonAction.setCheckable(true);
+	ShowMonitoringButtonAction.setChecked(config_get_bool(
+		GetGlobalConfig(), "BasicWindow", "ShowMonitoringButton"));
+
 	/* ------------------- */
 
 	connect(&hideAction, &QAction::triggered, this,
@@ -3116,6 +3121,9 @@ void OBSBasic::VolControlContextMenu()
 
 	connect(&toggleControlLayoutAction, &QAction::changed, this,
 		&OBSBasic::ToggleVolControlLayout, Qt::DirectConnection);
+
+	connect(&ShowMonitoringButtonAction, &QAction::changed, this,
+		&OBSBasic::ShowMonitoringButton, Qt::DirectConnection);
 
 	/* ------------------- */
 
@@ -3154,6 +3162,7 @@ void OBSBasic::VolControlContextMenu()
 	popup.addAction(&pasteFiltersAction);
 	popup.addSeparator();
 	popup.addAction(&toggleControlLayoutAction);
+	popup.addAction(&ShowMonitoringButtonAction);
 	popup.addSeparator();
 	popup.addAction(&filtersAction);
 	popup.addAction(&propertiesAction);
@@ -3192,6 +3201,11 @@ void OBSBasic::StackedMixerAreaContextMenuRequested()
 	toggleControlLayoutAction.setChecked(config_get_bool(
 		GetGlobalConfig(), "BasicWindow", "VerticalVolControl"));
 
+	QAction ShowMonitoringButtonAction(QTStr("ShowMonitoringButton"), this);
+	ShowMonitoringButtonAction.setCheckable(true);
+	ShowMonitoringButtonAction.setChecked(config_get_bool(
+		GetGlobalConfig(), "BasicWindow", "ShowMonitoringButton"));
+
 	/* ------------------- */
 
 	connect(&unhideAllAction, &QAction::triggered, this,
@@ -3206,12 +3220,16 @@ void OBSBasic::StackedMixerAreaContextMenuRequested()
 	connect(&toggleControlLayoutAction, &QAction::changed, this,
 		&OBSBasic::ToggleVolControlLayout, Qt::DirectConnection);
 
+	connect(&ShowMonitoringButtonAction, &QAction::changed, this,
+		&OBSBasic::ShowMonitoringButton, Qt::DirectConnection);
+
 	/* ------------------- */
 
 	QMenu popup;
 	popup.addAction(&unhideAllAction);
 	popup.addSeparator();
 	popup.addAction(&toggleControlLayoutAction);
+	popup.addAction(&ShowMonitoringButtonAction);
 	popup.addSeparator();
 	popup.addAction(&advPropAction);
 	popup.exec(QCursor::pos());
@@ -3292,6 +3310,18 @@ void OBSBasic::ToggleVolControlLayout()
 		ActivateAudioSource(source);
 }
 
+void OBSBasic::ShowMonitoringButton()
+{
+	bool showMonitoringButton = !config_get_bool(
+		GetGlobalConfig(), "BasicWindow", "ShowMonitoringButton");
+	config_set_bool(GetGlobalConfig(), "BasicWindow",
+			"ShowMonitoringButton", showMonitoringButton);
+
+	for (auto volume : volumes) {
+		volume->showMonitoringButton(showMonitoringButton);
+	}
+}
+
 void OBSBasic::ToggleMasterVolControlLayout()
 {
 	bool vertical = !config_get_bool(GetGlobalConfig(), "BasicWindow",
@@ -3310,7 +3340,10 @@ void OBSBasic::ActivateAudioSource(OBSSource source)
 
 	bool vertical = config_get_bool(GetGlobalConfig(), "BasicWindow",
 					"VerticalVolControl");
+	bool ShowMonitoringButton = config_get_bool(
+		GetGlobalConfig(), "BasicWindow", "ShowMonitoringButton");
 	VolControl *vol = new VolControl(source, NULL, true, vertical,
+					 ShowMonitoringButton,
 					 SOURCE_IS_NOT_TRACK);
 
 	vol->EnableSlider(!SourceVolumeLocked(source));
@@ -3371,8 +3404,8 @@ void OBSBasic::InitAudioMasterMixer()
 	VolControl *vol[MAX_AUDIO_MIXES];
 	bool hidden[MAX_AUDIO_MIXES];
 	for (int i = 0; i < MAX_AUDIO_MIXES; i++) {
-		vol[i] =
-			new VolControl(tracks[i], &muted[i], true, vertical, i);
+		vol[i] = new VolControl(tracks[i], &muted[i], true, vertical,
+					true, i);
 		meters[i] = vol[i]->GetMeter();
 		faders[i] = vol[i]->GetFader();
 		std::string trackNum = "Track" + std::to_string(i + 1) + "Name";
